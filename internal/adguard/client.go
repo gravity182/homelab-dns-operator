@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// RewriteEntry represenst a unit of DNS rewrite rule.
+// RewriteEntry represents a DNS rewrite rule.
 type RewriteEntry struct {
 	Domain string `json:"domain"`
 	Answer string `json:"answer"`
@@ -167,7 +167,7 @@ func (c *Client) do(req *http.Request, out any) error {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, body)
+		return fmt.Errorf("%s %s: unexpected status %d: %s", req.Method, req.URL.Path, resp.StatusCode, body)
 	}
 	if out == nil {
 		return nil

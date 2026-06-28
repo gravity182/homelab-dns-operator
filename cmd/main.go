@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -48,20 +49,26 @@ var (
 )
 
 type config struct {
-	adguardURL  string
+	adguardURL  *url.URL
 	adguardAuth *adguard.BasicAuth
 }
 
 func loadConfig() (config, error) {
-	cfg := config{
-		adguardURL: os.Getenv("ADGUARD_URL"),
-	}
-	username := os.Getenv("ADGUARD_USERNAME")
-	password := os.Getenv("ADGUARD_PASSWORD")
-
-	if cfg.adguardURL == "" {
+	adguardRawURL := os.Getenv("ADGUARD_URL")
+	if adguardRawURL == "" {
 		return config{}, fmt.Errorf("ADGUARD_URL is required")
 	}
+	adguardURL, err := url.ParseRequestURI(adguardRawURL)
+	if err != nil {
+		return config{}, fmt.Errorf("parse adguard url %s: %w", adguardRawURL, err)
+	}
+
+	cfg := config{
+		adguardURL: adguardURL,
+	}
+
+	username := os.Getenv("ADGUARD_USERNAME")
+	password := os.Getenv("ADGUARD_PASSWORD")
 	if (username == "") != (password == "") {
 		return config{}, fmt.Errorf("ADGUARD_USERNAME and ADGUARD_PASSWORD must be set together")
 	}
@@ -213,8 +220,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	adguardClient := adguard.NewClient(cfg.adguardURL, cfg.adguardAuth, nil)
-	if err := controller.NewDNSController(mgr.GetClient(), mgr.GetScheme(), adguardClient).SetupWithManager(mgr); err != nil {
+	adguardClient := adguard.NewClient(cfg.adguardURL.String(), cfg.adguardAuth, nil)
+	if err := controller.NewDNSController(mgr.GetClient(), adguardClient).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "DnsController")
 		os.Exit(1)
 	}

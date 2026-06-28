@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gravity182/gateway-dns-operator/internal/adguard"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,15 +31,13 @@ type AdguardRewriteClient interface {
 // AdGuard Home DNS rewrite rules.
 type DNSController struct {
 	client.Client
-	Scheme        *runtime.Scheme
 	rewriteClient AdguardRewriteClient
 }
 
 // NewDNSController creates a new DNSController.
-func NewDNSController(c client.Client, scheme *runtime.Scheme, rewriteClient AdguardRewriteClient) *DNSController {
+func NewDNSController(c client.Client, rewriteClient AdguardRewriteClient) *DNSController {
 	return &DNSController{
 		Client:        c,
-		Scheme:        scheme,
 		rewriteClient: rewriteClient,
 	}
 }
@@ -155,7 +152,7 @@ func buildDesiredState(ctx context.Context, c client.Client) (map[string]string,
 	for _, route := range routes.Items {
 		parentRefKey, ok := findParentRef(route)
 		if !ok {
-			logger.Info("Route %s has no valid parent refs", route.Name)
+			logger.Info("Route has no valid parent refs", "route", client.ObjectKeyFromObject(&route))
 			continue
 		}
 
@@ -169,7 +166,7 @@ func buildDesiredState(ctx context.Context, c client.Client) (map[string]string,
 
 		vip := parseCiliumVIPAnnotation(gateway)
 		if vip == "" {
-			logger.Info("Gateway %s has no Cilium VIP annotation", parentRefKey)
+			logger.Info("Gateway has no Cilium VIP annotation", "gateway", parentRefKey)
 			continue
 		}
 
